@@ -1,0 +1,149 @@
+'''% Programa para encontrar el minimo global
+% de la funcion:   Six hump camel
+%
+% y3: Numero total de evaluaciones de la funcion objetivo
+%
+% A1: Variable donde se guardan todos los vectores optimos
+% A2: Variable donde se guardan todos los valores de la funcion objetivo
+%     correspodientes a cada vector optimo
+% A3: Variable donde se guardan todos los vectores iniciales
+%     correspondientes a cada vector optimo
+% A4: Variable donde se guardan el numero de evaluaciones de la funcion
+%     objetivo,correspondiente a cada vector inicial
+
+format longG
+clear
+tic
+% Dominio de la variable x1,x2
+x1=linspace(-3,3,100);
+x2=linspace(-2,2,100);
+h=0.000001;
+
+n=length(x1);
+
+A1=zeros(1,2);
+A2=zeros(1,n*n);
+A3=zeros(1,2);
+A4=zeros(1,n*n);
+
+global y3 y4
+y3=0;
+w=0;
+% Proceso multistart
+for y1=1:n
+    for y2=1:n
+        w=w+1;
+        if mod(w,4000)==0
+            w
+            fprintf('Por favor, espere un momento')
+        end
+        y4=0;
+        %[xo,fxo]=P_M_Er(@camel6,[x1(y1),x2(y2)],h);
+        %[xo,fxo]=metodo_newton(@camel6,[x1(y1),x2(y2)],h);
+        %[xo,fxo]=cuasi_newton_BFGS(@camel6,[x1(y1),x2(y2)]',h);
+        %[xo,fxo]=gradientes_conjugados(@camel6,[x1(y1),x2(y2)],h);
+        %[xo,fxo]=gradientes_conjugados_HS(@camel6,[x1(y1),x2(y2)],h);
+        [xo,fxo]=metodo_hj(@camel6,[x1(y1),x2(y2)]',h);
+       
+        A1(:,:,w)=round(xo,6);
+        A2(w)=round(fxo,6);
+        A3(:,:,w)=[x1(y1),x2(y2)];
+        A4(w)=y4;
+    end
+end
+
+% Minimo local mas pequeño encontrado
+[m,i] = min(A2,[],'linear');
+fprintf('\n El minimo local mas pequeño encontrado es\n')
+fprintf('\n%f \t en \t (%f,%f)\n',m,A1(:,:,i))
+
+fprintf('\n con \t %d \t evaluaciones a la función \n\n',y3)
+fprintf('\n Con un promedio de evaluaciones por vector inicial de %f \n\n',mean(A4))
+fprintf('\n y una desviacion estandar de %f \n\n',std(A4))
+toc
+
+
+function [y] = camel6(xx)
+    x1 = xx(1);
+    x2 = xx(2);
+    term1 = (4-2.1*(x1.^2)+(x1.^4)/3) * x1.^2;
+    term2 = x1*x2;
+    term3 = (-4+4*x2.^2) * x2.^2;
+    y = term1 + term2 + term3;
+    global y3 y4
+    y3=y3+1;
+    y4=y4+1;
+end
+
+%   f  : funcion en Rn
+%   x0 : vector inicial 
+%   h  : precisión del método de Pendiente maxima 
+%
+%   D_F: Programa de diferencias finitas
+%   Hessian: Programa para aproximar la matriz Hessiana
+%   df : formula de diferencias finitas de 5 puntos centrales
+%
+%   y1 : contador de iteraciones del metodo
+%   y2 : contador de llamadas de la funcion 
+%
+%   xo : vector óptimo
+%   fxo: funcion evaluada en el vector óptimo
+
+function [x0,fxo,y1]=metodo_newton(f,x0,h)
+    format longG
+    y1=0;
+    y2=0;
+    i=0;
+    [G,y2]=Gradient(f,x0,0.00001,y2);
+    while norm(G)>h
+        [H,y2]=Hessian(f,x0,0.00001,y2);
+        d=H\G';
+        x0=(x0'-d)';
+        [G,y2]=Gradient(f,x0,0.00001,y2);
+        if y1==20
+            i=1;
+            break
+        end
+        y1=y1+1;
+    end
+    fxo=f(x0);
+    y2=y2+1;
+    if i==1 | x0==inf | x0==-inf
+        x0=nan;
+        fxo=nan;
+    end
+end
+%   Hessian: Programa para aproximar la matriz Hessiana
+function [H,y2]=Hessian(f,x0,h,y2)
+    n=length(x0);
+    A=eye(n);
+    H=zeros(n);
+    for k=1:n
+        df_x=@(x) df(f,x,h,A(k,:));
+        y2=y2+4;
+        for m=1:n
+            H(k,m)=df(df_x,x0,h,A(m,:));
+            y2=y2+4; 
+        end
+    end
+end
+%   Gradient: Programa de gradiente
+function [G,y2]=Gradient(f,x,h,y2)
+    n=length(x);
+    A=eye(n);
+    G=zeros(1,n);
+    for k=1:n
+        G(k)=df(f,x,h,A(k,:));
+        y2=y2+4;
+    end
+end
+%   df : formula de diferencias finitas de 5 puntos centrales
+function df=df(f,x,h,A)
+    P=[-2,-1,1,2];
+    F=[1,-8,8,-1];
+    df=0;
+    for k=1:4
+            df=df+F(k)*f(x+P(k)*h*A);
+    end
+    df=(1/(12*h))*df;
+end'''
